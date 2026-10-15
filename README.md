@@ -39,7 +39,7 @@ Then click the **pushpin icon** in the activity bar, open a workspace where you'
 
 ## How it works
 
-It reads Claude Code's local session transcripts from `~/.claude/projects/<encoded-workspace>/*.jsonl` (read-only) to build the list, and derives each session's title from its first prompt. Your pins, names, colors, emojis, and groups are stored in this extension's own VS Code storage.
+It reads Claude Code's local session transcripts from `~/.claude/projects/<encoded-workspace>/*.jsonl` (read-only) to build the list, and titles each session with Claude Code's AI-generated title (falling back to its first prompt). Your pins, names, colors, emojis, and groups are stored in this extension's own VS Code storage.
 
 ## Privacy
 

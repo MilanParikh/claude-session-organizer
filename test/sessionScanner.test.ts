@@ -10,6 +10,12 @@ function userText(text: string): string {
 function userImage(): string {
   return JSON.stringify({ type: "user", message: { role: "user", content: [{ type: "image", source: { type: "base64", data: "AAA" } }] } });
 }
+function aiTitle(title: string): string {
+  return JSON.stringify({ type: "ai-title", sessionId: "s", aiTitle: title });
+}
+function customTitle(title: string): string {
+  return JSON.stringify({ type: "custom-title", sessionId: "s", customTitle: title });
+}
 function assistant(text: string): string {
   return JSON.stringify({ type: "assistant", message: { role: "assistant", content: [{ type: "text", text }] } });
 }
@@ -39,6 +45,24 @@ describe("titleOf", () => {
   });
   it("returns empty string when no human prompt exists", () => {
     expect(titleOf([userImage(), assistant("hi")].join("\n"))).toBe("");
+  });
+  it("prefers the AI title over the first prompt", () => {
+    const jsonl = [userText("first prompt"), assistant("ok"), aiTitle("Fix login bug")].join("\n");
+    expect(titleOf(jsonl)).toBe("Fix login bug");
+  });
+  it("uses the last AI title when it is regenerated", () => {
+    const jsonl = [userText("p"), aiTitle("Old title"), userText("more"), aiTitle("New title")].join("\n");
+    expect(titleOf(jsonl)).toBe("New title");
+  });
+  it("prefers a /rename custom title over the AI title", () => {
+    const jsonl = [userText("p"), customTitle("My name"), aiTitle("AI name")].join("\n");
+    expect(titleOf(jsonl)).toBe("My name");
+  });
+  it("falls back to the first prompt when there is no AI title", () => {
+    expect(titleOf([userText("only prompt"), aiTitle("   ")].join("\n"))).toBe("only prompt");
+  });
+  it("truncates long AI titles", () => {
+    expect(titleOf(aiTitle("word ".repeat(40))).length).toBeLessThanOrEqual(60);
   });
   it("handles string content (not array)", () => {
     const jsonl = JSON.stringify({ type: "user", message: { role: "user", content: "Plain string prompt" } });
@@ -72,5 +96,15 @@ describe("scanSessions", () => {
     expect(out[0].title).toContain("22222222"); // fallback includes short id
     expect(out[1].filePath).toBe(older);
     expect(out[0].filePath).toBe(newer);
+  });
+
+  it("re-reads a transcript after it changes", async () => {
+    const file = path.join(dir, "33333333-3333-3333-3333-333333333333.jsonl");
+    fs.writeFileSync(file, userText("before"));
+    fs.utimesSync(file, new Date(1000), new Date(1000));
+    expect((await scanSessions(dir))[0].title).toBe("before");
+    fs.appendFileSync(file, "\n" + aiTitle("after"));
+    fs.utimesSync(file, new Date(2000), new Date(2000));
+    expect((await scanSessions(dir))[0].title).toBe("after");
   });
 });

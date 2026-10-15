@@ -1,7 +1,7 @@
 export interface SessionMeta {
   sessionId: string;   // jsonl filename without extension (uuid)
   mtimeMs: number;     // file last-modified, for sorting/relative time
-  title: string;       // first human prompt, or fallback
+  title: string;       // custom title > AI title > first human prompt > fallback
   filePath: string;    // absolute path to the .jsonl transcript
 }
 

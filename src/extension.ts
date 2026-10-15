@@ -46,10 +46,16 @@ export function activate(context: vscode.ExtensionContext): void {
     const watcher = vscode.workspace.createFileSystemWatcher(
       new vscode.RelativePattern(dir, "*.jsonl"),
     );
-    watcher.onDidCreate(() => provider.refresh());
-    watcher.onDidChange(() => provider.refresh());
-    watcher.onDidDelete(() => provider.refresh());
-    context.subscriptions.push(watcher);
+    // An active session appends to its transcript constantly; coalesce bursts of events.
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const scheduleRefresh = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => { timer = undefined; provider.refresh(); }, 750);
+    };
+    watcher.onDidCreate(scheduleRefresh);
+    watcher.onDidChange(scheduleRefresh);
+    watcher.onDidDelete(scheduleRefresh);
+    context.subscriptions.push(watcher, { dispose: () => { if (timer) clearTimeout(timer); } });
   }
 }
 

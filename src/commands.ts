@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import { sessionLabel } from "./display";
+import { isDeletableTranscript } from "./deleteGuard";
 import { formatRelative } from "./relativeTime";
 import type { SessionMeta } from "./types";
 import type { SessionStores } from "./sessionStores";
@@ -65,6 +66,10 @@ export function registerCommands(
     }),
     vscode.commands.registerCommand("claudeSessionOrganizer.sessions.delete", async (node: { meta?: { sessionId: string; title: string; filePath: string } }) => {
       if (!node?.meta) return;
+      if (!isDeletableTranscript(node.meta.sessionId, node.meta.filePath)) {
+        void vscode.window.showErrorMessage("Refusing to delete: not a Claude Code session transcript.");
+        return;
+      }
       const label = names.get(node.meta.sessionId) ?? node.meta.title ?? node.meta.sessionId;
       const pick = await vscode.window.showWarningMessage(
         `Delete session "${label}"? It will be moved to the trash.`,
@@ -74,6 +79,9 @@ export function registerCommands(
       if (pick !== "Delete") return;
       try {
         await vscode.workspace.fs.delete(vscode.Uri.file(node.meta.filePath), { useTrash: true });
+        // Sidecar folder (tool results, subagent transcripts) next to the transcript, if any.
+        const sidecar = vscode.Uri.file(node.meta.filePath.slice(0, -".jsonl".length));
+        try { await vscode.workspace.fs.delete(sidecar, { recursive: true, useTrash: true }); } catch { /* none */ }
         await pins.unpin(node.meta.sessionId);
         await names.clear(node.meta.sessionId);
         await stores.emojis.clear(node.meta.sessionId);

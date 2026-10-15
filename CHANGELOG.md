@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.0
+
+- Session titles now use Claude Code's AI-generated title (`aiTitle`, latest wins). A title set with `/rename` in Claude Code takes precedence; the first prompt is only a fallback for sessions that don't have an AI title yet. Names set in this extension still override everything.
+- Performance: transcript titles are cached by file mtime/size, and file-watcher refreshes are debounced. Previously every write to an active session re-read every transcript in the project in full.
+- Delete only accepts a `<uuid>.jsonl` inside `~/.claude/projects/`, since commands can be invoked by other extensions with arbitrary arguments. It also trashes the session's sidecar folder (tool results, subagent transcripts).
+
 ## 0.7.6
 
 - Remove the list ↔ editor-tab selection sync entirely (it kept fighting with clicking to open). Clicking a session just opens it now; the list selection is left to VS Code's native behavior, so it no longer jumps to a different session.
